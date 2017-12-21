@@ -1,0 +1,1536 @@
+
+
+
+'==========================================================================
+'
+'               点击生成配置文件，指定宏
+'
+'==========================================================================
+
+Sub genConfFile()
+  outputBlueprint
+  outputHostmap
+  outputReg_create
+  outputAnsible
+  outputDiskPartition
+  outputNodesInfo
+  confFilePath = getConfFilePath
+  MsgBox ("生成文件成功,配置文件存储在：" & confFilePath & "  请查看！")
+End Sub
+'==========================================================================
+'
+'               导出blueprint文件
+'
+'==========================================================================
+  Sub outputBlueprint()
+    blueprint = getConfFilePath & "\blueprint\"
+    mkdirp (blueprint)
+    Filename = blueprint & "blueprint.json"
+    'mysqlHostIP db的ip地址约定为manger1
+    mysqlHostIP = Sheets("组件部署").Cells(nodesInfoStartRow, Range("componentNodesIP").Column)
+    Open Filename For Output As #1
+    Print #1, "{"
+    Print #1, L2 & Chr(34) & "configurations" & Chr(34) & " : ["
+    '====================================core-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "core-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "fs.defaultFS" & Chr(34) & " : " & Chr(34) & "hdfs://prod" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hadoop.proxyuser.hive.hosts" & Chr(34) & " : " & Chr(34) & "*" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hadoop.proxyuser.HTTP.groups" & Chr(34) & " : " & Chr(34) & "*" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hadoop.proxyuser.HTTP.hosts" & Chr(34) & " : " & Chr(34) & "*" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hadoop.proxyuser.knox.groups" & Chr(34) & " : " & Chr(34) & "*" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hadoop.proxyuser.knox.hosts" & Chr(34) & " : " & Chr(34) & "*" & Chr(34) & ","
+    rangerHostIP = getRangerHostIP
+    rangerHostname = LCase(Range("clusterName")) & "-" & Replace(rangerHostIP, ".", "-") & "." & Range("domainName")
+    Print #1, L5 & Chr(34) & "hadoop.kms.key.provider.path" & Chr(34) & " : " & Chr(34) & _
+              "kms://http@" & rangerHostname & ":9292/kms" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ha.zookeeper.quorum" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master1%:2181,%HOSTGROUP::master2%:2181,%HOSTGROUP::master3%:2181" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================hdfs-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "hdfs-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "dfs.client.failover.proxy.provider.prod" & Chr(34) & " : " & Chr(34) & _
+        "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.ha.automatic-failover.enabled" & Chr(34) & " : " & Chr(34) & _
+        "true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.ha.fencing.methods" & Chr(34) & " : " & Chr(34) & _
+        "shell(/bin/true)" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.ha.namenodes.prod" & Chr(34) & " : " & Chr(34) & _
+        "nn1,nn2" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.http-address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:50070" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.http-address.prod.nn1" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:50070" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.http-address.prod.nn2" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master3%:50070" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.https-address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:50470" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.https-address.prod.nn1" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:50470" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.https-address.prod.nn2" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master3%:50470" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.rpc-address.prod.nn1" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:8020" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.rpc-address.prod.nn2" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master3%:8020" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.shared.edits.dir" & Chr(34) & " : " & Chr(34) & _
+        "qjournal://%HOSTGROUP::master1%:8485;%HOSTGROUP::master2%:8485;%HOSTGROUP::master3%:8485/prod" _
+        & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.journalnode.edits.dir" & Chr(34) & " : " & Chr(34) & _
+              "/srv/indata/metadata/journalnode" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.name.dir" & Chr(34) & " : " & Chr(34) & _
+              "/srv/indata/metadata/namenode" & Chr(34) & ","
+         '============================datanode目录===========================
+    Print #1, L5 & Chr(34) & "dfs.datanode.data.dir" & Chr(34) & " : " & Chr(34) & "/srv/indata/data/datanode_1" & Chr(34) & ","
+            '↑↑↑↑↑↑↑↑↑↑↑↑↑↑datanode目录↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+    Print #1, L5 & Chr(34) & "dfs.nameservices" & Chr(34) & " : " & Chr(34) & "prod" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.namenode.inode.attributes.provider.class" & Chr(34) & " : " & Chr(34) & _
+              "org.apache.ranger.authorization.hadoop.RangerHdfsAuthorizer" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "dfs.encryption.key.provider.uri" & Chr(34) & " : " & Chr(34) & _
+              "kms://http@" & rangerHostname & ":9292/kms" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================yarn-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "yarn-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "hadoop.registry.rm.enabled" & Chr(34) & " : " & Chr(34) & "false" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hadoop.registry.zk.quorum" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master1%:2181,%HOSTGROUP::master2%:2181,%HOSTGROUP::master3%:2181" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.log.server.url" & Chr(34) & " : " & Chr(34) & _
+        "http://%HOSTGROUP::master3%:19888/jobhistory/logs" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:8050" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.admin.address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:8141" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.cluster-id" & Chr(34) & " : " & Chr(34) & _
+        "yarn-cluster" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.ha.automatic-failover.zk-base-path" _
+        & Chr(34) & " : " & Chr(34) & "/yarn-leader-election" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.ha.enabled" & Chr(34) & " : " & Chr(34) & _
+        "true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.ha.rm-ids" & Chr(34) & " : " & Chr(34) & _
+        "rm1,rm2" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.hostname" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.hostname.rm1" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.hostname.rm2" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master3%" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.webapp.address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:8088" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.webapp.address.rm1" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:8088" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.webapp.address.rm2" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master3%:8088" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.webapp.https.address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:8090" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.recovery.enabled" & Chr(34) & " : " & Chr(34) & _
+        "true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.resource-tracker.address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:8025" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.nodemanager.aux-services" & Chr(34) & " : " & Chr(34) & _
+        "mapreduce_shuffle,spark2_shuffle" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.scheduler.address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master2%:8030" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.resourcemanager.store.class" & Chr(34) & " : " & Chr(34) & _
+        "org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore" & Chr(34) & ","
+
+    Print #1, L5 & Chr(34) & "yarn.timeline-service.address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master3%:10200" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.timeline-service.webapp.address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master3%:8188" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.timeline-service.webapp.https.address" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master3%:8190" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "yarn.authorization-provider" & Chr(34) & " : " & Chr(34) & _
+          "org.apache.ranger.authorization.yarn.authorizer.RangerYarnAuthorizer" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================hbase-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "hbase-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "hbase.quota.enabled" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.quota.refresh.period" & Chr(34) & " : " & Chr(34) & "60000" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.rest.port" & Chr(34) & " : " & Chr(34) & "17000" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.rest.info.port" & Chr(34) & " : " & Chr(34) & "17050" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hadoop.proxyuser.HTTP.groups" & Chr(34) & " : " & Chr(34) & "*" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hadoop.proxyuser.HTTP.hosts" & Chr(34) & " : " & Chr(34) & "*" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.rest.authentication.type" & Chr(34) & " : " & Chr(34) & "kerberos" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.rest.support.proxyuser" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    realm = Range("realm").value
+    Print #1, L4 & Chr(34) & "hbase.rest.kerberos.principal" & Chr(34) & " : " & Chr(34) & "hbase/_HOST" & "@" & realm & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.rest.keytab.file" & Chr(34) & " : " & Chr(34) & _
+              "/etc/security/keytabs/hbase.service.keytab" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.rest.authentication.kerberos.principal" & Chr(34) & " : " & Chr(34) & _
+              "HTTP/_HOST" & "@" & realm & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.rest.authentication.kerberos.keytab" & Chr(34) & " : " & Chr(34) & _
+              "/etc/security/keytabs/spnego.service.keytab" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.regionserver.global.memstore.lowerLimit" & Chr(34) & " : " _
+          & Chr(34) & "0.38" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.regionserver.global.memstore.upperLimit" & Chr(34) & " : " _
+          & Chr(34) & "0.4" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.regionserver.handler.count" & Chr(34) & " : " & Chr(34) & _
+        "60" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.regionserver.info.port" & Chr(34) & " : " & Chr(34) & _
+        "60030" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.regionserver.storefile.refresh.period" & Chr(34) & " : " & _
+    Chr(34) & "20" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.rootdir" & Chr(34) & " : " & Chr(34) & _
+        "hdfs://prod/apps/hbase/data" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.superuser" & Chr(34) & " : " & Chr(34) & "hbase" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.tmp.dir" & Chr(34) & " : " & Chr(34) & _
+        "/hadoop/hbase" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.zookeeper.property.clientPort" & Chr(34) & " : " & Chr(34) & _
+        "2181" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.zookeeper.quorum" & Chr(34) & " : " & Chr(34) & _
+        "%HOSTGROUP::master1%,%HOSTGROUP::master2%,%HOSTGROUP::master3%" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.zookeeper.useMulti" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hfile.block.cache.size" & Chr(34) & " : " & Chr(34) & "0.40" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "zookeeper.session.timeout" & Chr(34) & " : " & Chr(34) & "30000" & Chr(34) & ","
+
+    Print #1, L4 & Chr(34) & "zookeeper.znode.parent" & Chr(34) & " : " & Chr(34) & "/hbase-unsecure" _
+              & Chr(34); ","
+           '==============================hbase 安全相关Atlas启动失败--添加的配置参数====================
+    Print #1, L4 & Chr(34) & "hbase.coprocessor.master.classes" & Chr(34) & " : " & Chr(34) & _
+              "org.apache.ranger.authorization.hbase.RangerAuthorizationCoprocessor" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.coprocessor.region.classes" & Chr(34) & " : " & Chr(34) & _
+              "org.apache.hadoop.hbase.security.token.TokenProvider," & "org.apache.hadoop.hbase.security." _
+              & "access.SecureBulkLoadEndpoint,org.apache.ranger.authorization.hbase." _
+              & "RangerAuthorizationCoprocessor" & Chr(34) & ","
+    Print #1, L4 & Chr(34) & "hbase.coprocessor.regionserver.classes" & Chr(34) & " : " & Chr(34) & _
+              "org.apache.ranger.authorization.hbase.RangerAuthorizationCoprocessor" & Chr(34)
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================zoo.cfg的配置参数(zookeeper 数据存放路径配置)========================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "zoo.cfg" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "dataDir" & Chr(34) & " : " & Chr(34) & "/srv/indata/metadata/zookeeper" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================kafka-broker的配置参数(数据存放路径配置)=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "kafka-broker" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "log.dirs" & Chr(34) & " : " & Chr(34) & "/srv/indata/data/kafka_1" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "lauthorizer.class.name" & Chr(34) & " : " & Chr(34) & _
+              "org.apache.ranger.authorization.kafka.authorizer.RangerKafkaAuthorizer" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================elasticsearch.yml的配置参数(数据存放路径配置)=============================================
+
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "elasticsearch.yml" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "path.data" & Chr(34) & " : " & Chr(34) & "/srv/indata/data/elasticsearch_1" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================master.gflagfile的配置参数(kudu master 数据存放路径配置)========================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "master.gflagfile" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "fs_data_dirs" & Chr(34) & " : " & Chr(34) & "/srv/indata/metadata/kudu_master" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "fs_wal_dir" & Chr(34) & " : " & Chr(34) & "/srv/indata/metadata/kudu_master" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================tserver.gflagfile的配置参数(数据存放路径配置)=============================================
+
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "tserver.gflagfile" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "fs_data_dirs" & Chr(34) & " : " & Chr(34) & "/srv/indata/data/kudu_tserver_1" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "fs_wal_dir" & Chr(34) & " : " & Chr(34) & "/srv/indata/data/kudu_tserver_1" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================nifi-properties的配置参数(数据存放路径配置)=============================================
+
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "nifi-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "nifi.content.repository.directory.content1" & Chr(34) & " : " & Chr(34) & "/srv/indata/data/nifi_1" & Chr(34) & ","
+
+    Print #1, L5 & Chr(34) & "nifi.remote.input.socket.port" & Chr(34) & " : " & Chr(34) & "9998" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.remote.input.host" & Chr(34) & " : " & Chr(34) & "{{nifi_node_host}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.locale" & Chr(34) & " : " & Chr(34) & "zh_cn" & Chr(34) & ","
+    '==============================================nginx_host_ip待填写============================
+    Print #1, L5 & Chr(34) & "host.ip" & Chr(34) & " : " & Chr(34) & "{{nginx_host_ip}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.database.directory" & Chr(34) & " : " & Chr(34) & "/var/lib/nifi/database_repository" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.flowfile.repository.directory" & Chr(34) & " : " & Chr(34) & "/var/lib/nifi/database_repository" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.security.user.login.identity.provider" & Chr(34) & " : " & Chr(34) & "" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.security.identity.mapping.pattern.kerb" & Chr(34) & " : " & Chr(34) & "^(.*?)@(.*?)$" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.security.identity.mapping.value.kerb" & Chr(34) & " : " & Chr(34) & "$1" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.security.user.knox.publicKey" & Chr(34) & " : " & Chr(34) & "/etc/nifi/conf/gateway.pem" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.locale" & Chr(34) & " : " & Chr(34) & "zh_cn" & Chr(34) & ","
+    '===============================
+    
+    ambariServerIP = Sheets("组件部署").Cells(nodesInfoStartRow, Range("componentNodesIP").Column)
+    ambariServer = LCase(Range("clusterName")) & "-" & Replace(ambariServerIP, ".", "-") & "." & Range("domainName")
+    nifiHostIP = getNifiHostIP
+    nifiHostName = LCase(Range("clusterName")) & "-" & Replace(nifiHostIP, ".", "-") & "." & Range("domainName")
+    Print #1, L5 & Chr(34) & "nifi.nginx.cluster" & Chr(34) & " : " & Chr(34) & nifiHostName & ":82" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.nginx.dev" & Chr(34) & " : " & Chr(34) & ambariServer & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.realm" & Chr(34) & " : " & Chr(34) & "tenant" & Chr(34) & ","
+    '=============================================================tenant-jwt
+    Print #1, L5 & Chr(34) & "nifi.security.user.knox.cookieName" & Chr(34) & " : " & Chr(34) & "tenant-jwt" & Chr(34) & ","
+    knoxHostName = getKnoxHostName
+    Print #1, L5 & Chr(34) & "nifi.security.user.knox.url" & Chr(34) & " : " & Chr(34) & "http://" & knoxHostName & _
+              ":8444/gateway/knoxsso/api/v1/websso" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '==================================nifi-ambari-config的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "nifi-ambari-config" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    nifiPassword = Range("nifiPassword").value
+    '====避免password中的p变成大写LCase转换
+    nifiPassWordKey = LCase("nifi.security.encrypt.configuration.Password")
+    Print #1, L5 & Chr(34) & nifiPassWordKey & Chr(34) & " : " & Chr(34) & nifiPassword & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.initial_mem" & Chr(34) & " : " & Chr(34) & "1024m" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.max_mem" & Chr(34) & " : " & Chr(34) & "1024m" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '==================================nifi-ambari-ssl-config的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "nifi-ambari-ssl-config" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    'tenant 对应域设置后期增加
+    Print #1, L5 & Chr(34) & "nifi.initial.admin.identity" & Chr(34) & " : " & Chr(34) & "nifiadmin-tenant" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.node.ssl.isenabled" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "nifi.security.needClientAuth" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    contentValue = getNifiContent
+    Print #1, L5 & Chr(34) & "content" & Chr(34) & " : " & Chr(34) & contentValue & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '==================================nifi-env的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "nifi-env" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "nifi_group" & Chr(34) & " : " & Chr(34) & "hadoop" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '==================================spark2-env的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "spark2-env" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "spark_group" & Chr(34) & " : " & Chr(34) & "hadoop" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '==================================logfeeder-properties的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "logfeeder-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "logfeeder.log.filter.enable" & Chr(34) & " : " & Chr(34) & "false" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    
+    '====================================hive-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "hive-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+
+    Print #1, L5 & Chr(34) & "javax.jdo.option.ConnectionURL" & Chr(34) & " : " & Chr(34) & _
+              "jdbc:mysql://" & mysqlHostIP & ":3306/hive?createDatabaseIfNotExist=true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "javax.jdo.option.ConnectionPassword" & Chr(34) & " : " & Chr(34) & _
+              Range("mysqlHivePassword") & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "javax.jdo.option.ConnectionUserName" & Chr(34) & " : " & Chr(34) & _
+              "hive" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hive.server2.enable.doAs" & Chr(34) & " : " & Chr(34) & "true" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================hive-interactive-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "hive-interactive-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "hive.execution.engine" & Chr(34) & " : " & Chr(34) & "tez" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hive.server2.enable.doAs" & Chr(34) & " : " & Chr(34) & "true" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================webhcat-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "webhcat-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "templeton.pig.archive" & Chr(34) & " : " & Chr(34) & "" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================hiveserver2-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "hiveserver2-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "hive.security.authorization.manager" & Chr(34) & " : " & Chr(34) & _
+              "org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLStdConfOnlyAuthorizerFactory" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hive.security.authenticator.manager" & Chr(34) & " : " & Chr(34) & _
+              "org.apache.hadoop.hive.ql.security.ProxyUserAuthenticator" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hive.conf.restricted.list" & Chr(34) & " : " & Chr(34) & _
+              "hive.security.authenticator.manager,hive.security.authorization.manager,hive.users.in.admin.role" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================hive-env的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "hive-env" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "hive_txn_acid" & Chr(34) & " : " & Chr(34) & "on" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hive_ambari_database" & Chr(34) & " : " & Chr(34) & "MySQL" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hive_database" & Chr(34) & " : " & Chr(34) & _
+              "Existing MySQL / MariaDB Database" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hive_security_authorization" & Chr(34) & " : " & Chr(34) & "Ranger" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hive_database_name" & Chr(34) & " : " & Chr(34) & "hive" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "hive_database_type" & Chr(34) & " : " & Chr(34) & "mysql" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================sqoop-env的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "sqoop-env" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "jdbc_drivers" & Chr(34) & " : " & Chr(34) & _
+              "com.mysql.jdbc.Driver,oracle.jdbc.driver.OracleDriver" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '==============================application-properties的配置参数=======================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "application-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "atlas.taxonomy.default.name" & Chr(34) & " : " & Chr(34) & "Catalog" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "atlas.feature.taxonomy.enable" & Chr(34) & " : " & Chr(34) & "true" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '==============================spark2-defaults的配置参数=======================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "spark2-defaults" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "spark.yarn.am.extraJavaOptions" & Chr(34) & " : " & Chr(34) & _
+              "-Dhdp.version={{version}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "spark.driver.extraJavaOptions" & Chr(34) & " : " & Chr(34) & _
+              "-Dhdp.version={{version}}" & Chr(34) & ","
+    val1 = "-Dalluxio.zookeeper.address=%HOSTGROUP::master1%:2181,%HOSTGROUP::master2%:2181,%HOSTGROUP::master3%:2181 "
+    val2 = "-Dalluxio.zookeeper.enabled=true -Dalluxio.user.block.size.bytes.default=128MB "
+    val3 = "-Dalluxio.user.network.netty.timeout.ms=120000"
+    Print #1, L5 & Chr(34) & "spark.driver.extraJavaOptions" & Chr(34) & " : " & Chr(34) & val1 & val2 & val3 & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "spark.executor.extraJavaOptions" & Chr(34) & " : " & Chr(34) & val1 & val2 & val3 & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "spark2_with_hbase" & Chr(34) & " : " & Chr(34) & "true" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================topology的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "topology" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    content1 = Range("topologyContent").value
+    Print #1, L5 & Chr(34) & "content" & Chr(34) & " : " & Chr(34) & content1 & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================ams-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ams-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "timeline.metrics.service.operation.mode" & Chr(34) & " : " & Chr(34) & "distributed" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================ranger-env的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-env" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "is_solrCloud_enabled" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "is_external_solrCloud_enabled" & Chr(34) & " : " & Chr(34) & "false" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger_user" & Chr(34) & " : " & Chr(34) & "ranger" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger_group" & Chr(34) & " : " & Chr(34) & "ranger" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.db" & Chr(34) & " : " & Chr(34) & "false" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.solr" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs.dir" & Chr(34) & " : " & Chr(34) & _
+              "hdfs://prod/ranger/audit" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger_privelege_user_jdbc_url" & Chr(34) & " : " & Chr(34) & _
+              "jdbc:mysql://" & mysqlHostIP & ":3306" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-hdfs-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-yarn-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-hbase-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-hive-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-nifi-plugin-enabled" & Chr(34) & " : " & Chr(34) & "No" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-kafka-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-atlas-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-knox-plugin-enabled" & Chr(34) & " : " & Chr(34) & "No" & Chr(34) & ","
+    'ranger管理员密码
+    rangerAdminPassword = Range("rangerAdminPassword")
+    Print #1, L5 & Chr(34) & "ranger_admin_password" & Chr(34) & " : " & Chr(34) & rangerAdminPassword & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '==================================gateway-site的配置参数(knox 端口配置)=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "gateway-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "gateway.port" & Chr(34) & " : " & Chr(34) & "8444" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ssl.enabled" & Chr(34) & " : " & Chr(34) & "false" & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "keycloak_dev_realm" & Chr(34) & " : " & Chr(34) & "tenant" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+        '==================================ams-grafana-ini的配置参数(grafana 端口配置)=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ams-grafana-ini" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "port" & Chr(34) & " : " & Chr(34) & "3001" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '====================================ranger-admin-site的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-admin-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    
+    Print #1, L5 & Chr(34) & "ranger.audit.source.type" & Chr(34) & " : " & Chr(34) & "solr" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.audit.solr.urls" & Chr(34) & " : " & Chr(34) & "" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.audit.solr.username" & Chr(34) & " : " & Chr(34) & "ranger_solr" & Chr(34) & ","
+    'zk = "%HOSTGROUP::master1%:2181,%HOSTGROUP::master2%:2181,%HOSTGROUP::master3%:2181/infra-solr"
+    
+    zk = getZKQuorum & "/infra-solr"
+    Print #1, L5 & Chr(34) & "ranger.audit.solr.zookeepers" & Chr(34) & " : " & Chr(34) & zk & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.authentication.method" & Chr(34) & " : " & Chr(34) & "UNIX" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.credential.provider.path" & Chr(34) & " : " & Chr(34) & _
+              "/etc/ranger/admin/rangeradmin.jceks" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.https.attrib.keystore.file" & Chr(34) & " : " & Chr(34) & _
+              "/etc/ranger/admin/conf/ranger-admin-keystore.jks" & Chr(34) & ","
+              
+    Print #1, L5 & Chr(34) & "ranger.jpa.audit.jdbc.user" & Chr(34) & " : " & Chr(34) & "{{ranger_audit_db_user}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.jpa.audit.jdbc.credential.alias" & Chr(34) & " : " & Chr(34) & "rangeraudit" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.jpa.audit.jdbc.driver" & Chr(34) & " : " & Chr(34) & "{{ranger_jdbc_driver}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.jpa.audit.jdbc.dialect" & Chr(34) & " : " & Chr(34) & "{{jdbc_dialect}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.jpa.audit.jdbc.url" & Chr(34) & " : " & Chr(34) & "{{audit_jdbc_url}}" & Chr(34) & ","
+    
+    Print #1, L5 & Chr(34) & "ranger.jpa.jdbc.credential.alias" & Chr(34) & " : " & Chr(34) & "rangeradmin" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.jpa.jdbc.driver" & Chr(34) & " : " & Chr(34) & "com.mysql.jdbc.Driver" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.jpa.jdbc.url" & Chr(34) & " : " & Chr(34) & "jdbc:mysql://" _
+              & mysqlHostIP & ":3306/ranger" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.jpa.jdbc.user" & Chr(34) & " : " & Chr(34) & "{{ranger_db_user}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.jpa.jdbc.dialect" & Chr(34) & " : " & Chr(34) & "{{jdbc_dialect}}" & Chr(34) & ","
+    
+    Print #1, L5 & Chr(34) & "ranger.ldap.referral" & Chr(34) & " : " & Chr(34) & "ignore" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.ad.referral" & Chr(34) & " : " & Chr(34) & "ignore" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.ad.domain" & Chr(34) & " : " & Chr(34) & "" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.bind.dn" & Chr(34) & " : " & Chr(34) & "{{ranger_ug_ldap_bind_dn}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.ad.bind.dn" & Chr(34) & " : " & Chr(34) & "{{ranger_ug_ldap_bind_dn}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.user.searchfilter" & Chr(34) & " : " & Chr(34) & _
+              "{{ranger_ug_ldap_user_searchfilter}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.ad.user.searchfilter" & Chr(34) & " : " & Chr(34) & _
+              "{{ranger_ug_ldap_user_searchfilter}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.group.roleattribute" & Chr(34) & " : " & Chr(34) & "cn" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.url" & Chr(34) & " : " & Chr(34) & "{{ranger_ug_ldap_url}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.ad.url" & Chr(34) & " : " & Chr(34) & "{{ranger_ug_ldap_url}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.base.dn" & Chr(34) & " : " & Chr(34) & "dc=example,dc=com" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.ad.base.dn" & Chr(34) & " : " & Chr(34) & "dc=example,dc=com" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ldap.user.dnpattern" & Chr(34) & " : " & Chr(34) & _
+              "uid={0},ou=users,dc=xasecure,dc=net" & Chr(34) & ","
+    
+    Print #1, L5 & Chr(34) & "ranger.service.host" & Chr(34) & " : " & Chr(34) & "{{ranger_host}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.service.http.port" & Chr(34) & " : " & Chr(34) & "6080" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.service.http.enabled" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.service.https.attrib.clientAuth" & Chr(34) & " : " & Chr(34) & "want" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.service.https.attrib.keystore.keyalias" & Chr(34) & " : " & Chr(34) & _
+              "rangeradmin" & Chr(34) & ","
+    'Print #1, L5 & Chr(34) & "ranger.service.https.attrib.keystore.pass" & Chr(34) & " : " & Chr(34) & "123456a?" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.service.https.attrib.ssl.enabled" & Chr(34) & " : " & Chr(34) & "false" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.service.https.port" & Chr(34) & " : " & Chr(34) & "6182" & Chr(34) & ","
+    
+    Print #1, L5 & Chr(34) & "ranger.sso.cookiename" & Chr(34) & " : " & Chr(34) & "hadoop-jwt" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.sso.publicKey" & Chr(34) & " : " & Chr(34) & "" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.sso.providerurl" & Chr(34) & " : " & Chr(34) & "" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.sso.query.param.originalurl" & Chr(34) & " : " & Chr(34) & "originalUrl" & Chr(34) & ","
+    
+    Print #1, L5 & Chr(34) & "ranger.unixauth.service.port" & Chr(34) & " : " & Chr(34) & "5151" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.unixauth.remote.login.enabled" & Chr(34) & " : " & Chr(34) & "true" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.unixauth.service.hostname" & Chr(34) & " : " & Chr(34) & "{{ugsync_host}}" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    '================admin-properties相关的配置参数(Ranger)===================================
+    sqlConnectorJar = "/usr/share/java/mysql-connector-java.jar"
+    rangerHostIP = getRangerHostIP
+    rangerHostname = LCase(Range("clusterName")) & "-" & Replace(rangerHostIP, ".", "-") & "." & Range("domainName")
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "admin-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "DB_FLAVOR" & Chr(34) & " : " & Chr(34) & "MYSQL" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "audit_db_name" & Chr(34) & " : " & Chr(34) & "ranger_audit" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "audit_db_user" & Chr(34) & " : " & Chr(34) & "rangerlogger" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "SQL_CONNECTOR_JAR" & Chr(34) & " : " & Chr(34) & sqlConnectorJar & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "policymgr_external_url" & Chr(34) & " : " & Chr(34) & "http://" & rangerHostname & ":6080" & Chr(34) & ","
+          '============================ranger database相关信息=====================================
+    Print #1, L5 & Chr(34) & "db_name" & Chr(34) & " : " & Chr(34) & "ranger" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "db_user" & Chr(34) & " : " & Chr(34) & "rangeradmin" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "db_host" & Chr(34) & " : " & Chr(34) & mysqlHostIP & Chr(34) & ","
+    '=====约定于ranger admin使用同一个密码==========
+    Print #1, L5 & Chr(34) & "db_password" & Chr(34) & " : " & Chr(34) & rangerAdminPassword & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "db_root_user" & Chr(34) & " : " & Chr(34) & "root" & Chr(34) & ","
+           ' ==================mysql root密码  ===============
+    mysqlRootPassword = Range("mysqlRootPassword")
+    Print #1, L5 & Chr(34) & "db_root_password" & Chr(34) & " : " & Chr(34) & mysqlRootPassword & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    
+'    '================ranger-ugsync-site相关的配置参数(Ranger ldap)===================================
+'    Print #1, L3 & "{"
+'    Print #1, L3 & Chr(34) & "ranger-ugsync-site" & Chr(34) & " : {"
+'    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+'    Print #1, L5 & Chr(34) & "ranger.usersync.ldap.url" & Chr(34) & " : " & Chr(34) & "ldap://localhost:389" & Chr(34) & ","
+'    Print #1, L5 & Chr(34) & "ranger.usersync.ldap.binddn" & Chr(34) & " : " & Chr(34) & "cn=Manager,dc=idap,dc=com" & Chr(34) & ","
+'    Print #1, L5 & Chr(34) & "ranger.usersync.ldap.ldapbindpassword" & Chr(34) & " : " & Chr(34) & Range("ldapRootPassword") & Chr(34) & ","
+'    Print #1, L5 & Chr(34) & "ranger.usersync.ldap.user.nameattribute" & Chr(34) & " : " & Chr(34) & "uid" & Chr(34) & ","
+'    Print #1, L5 & Chr(34) & "ranger.usersync.ldap.user.searchbase" & Chr(34) & " : " & Chr(34) & _
+'              "cn=IDAP.COM,cn=kerberos,dc=idap,dc=com" & Chr(34)
+'    Print #1, L5 & "}"
+'    Print #1, L4 & "}"
+'    Print #1, L3 & "},"
+    
+    '================ranger-kms相关的配置参数( kms-properties dbks-site)===================================
+    
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "kms-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "DB_FLAVOR" & Chr(34) & " : " & Chr(34) & "MYSQL" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "REPOSITORY_CONFIG_USERNAME" & Chr(34) & " : " & Chr(34) & "keyadmin" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "KMS_MASTER_KEY_PASSWD" & Chr(34) & " : " & Chr(34) & "123456a?" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "SQL_CONNECTOR_JAR" & Chr(34) & " : " & Chr(34) & sqlConnectorJar & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "db_name" & Chr(34) & " : " & Chr(34) & "rangerkms" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "db_user" & Chr(34) & " : " & Chr(34) & "rangerkms" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "db_host" & Chr(34) & " : " & Chr(34) & mysqlHostIP & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "db_password" & Chr(34) & " : " & Chr(34) & "123456a?" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "db_root_user" & Chr(34) & " : " & Chr(34) & "root" & Chr(34) & ","
+           ' ==================mysql root密码  ===============
+    mysqlRootPassword = Range("mysqlRootPassword")
+    Print #1, L5 & Chr(34) & "db_root_password" & Chr(34) & " : " & Chr(34) & mysqlRootPassword & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "dbks-site" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "hadoop.kms.blacklist.DECRYPT_EEK" & Chr(34) & " : " & Chr(34) & "hdfs" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ks.jpa.jdbc.credential.alias" & Chr(34) & " : " & Chr(34) & _
+              "ranger.ks.jdbc.password" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ks.jpa.jdbc.credential.provider.path" & Chr(34) & " : " & Chr(34) & _
+              "/etc/ranger/kms/rangerkms.jceks" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ks.jpa.jdbc.dialect" & Chr(34) & " : " & Chr(34) & "{{jdbc_dialect}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ks.jpa.jdbc.driver" & Chr(34) & " : " & Chr(34) & "com.mysql.jdbc.Driver" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ks.jpa.jdbc.user" & Chr(34) & " : " & Chr(34) & "{{db_user}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ks.jpa.jdbc.url" & Chr(34) & " : " & Chr(34) & "jdbc:mysql://" & _
+              mysqlHostIP & ":3306/rangerkms" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ks.jdbc.sqlconnectorjar" & Chr(34) & " : " & Chr(34) & "{{ews_lib_jar_path}}" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.ks.masterkey.credential.alias" & Chr(34) & " : " & Chr(34) & _
+              "ranger.ks.masterkey.password" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+            '====================================ranger-hdfs的配置参数=============================================
+    impl = "org.apache.ranger.admin.client.RangerAdminRESTClient"
+    serverUrl = "http://" & rangerHostname & ":6080"
+    hdfsDir = "hdfs://prod/ranger/audit"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-hdfs-security" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger.plugin.hdfs.policy.source.impl" & Chr(34) & " : " & Chr(34) & impl & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "xasecure.add-hadoop-authorization" & Chr(34) & " : " & Chr(34) & "false" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.plugin.hdfs.policy.rest.url" & Chr(34) & " : " & Chr(34) & serverUrl & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-hdfs-audit" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs.dir" & Chr(34) & " : " & Chr(34) & hdfsDir & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-hdfs-plugin-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "REPOSITORY_CONFIG_USERNAME" & Chr(34) & " : " & Chr(34) & "hadoop" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-hdfs-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "common.name.for.certificate" & Chr(34) & " : " & Chr(34) & "" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "policy_user" & Chr(34) & " : " & Chr(34) & "ambari-qa" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+            '====================================ranger-yarn的配置参数=============================================
+            
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-yarn-security" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger.plugin.yarn.policy.source.impl" & Chr(34) & " : " & Chr(34) & impl & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.add-yarn-authorization" & Chr(34) & " : " & Chr(34) & "false" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.plugin.yarn.policy.rest.url" & Chr(34) & " : " & Chr(34) & serverUrl & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-yarn-audit" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs.dir" & Chr(34) & " : " & Chr(34) & hdfsDir & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-yarn-plugin-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger-yarn-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+            '====================================ranger-hbase的配置参数=============================================
+
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-hbase-security" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger.plugin.hbase.policy.source.impl" & Chr(34) & " : " & Chr(34) & impl & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.plugin.hbase.policy.rest.url" & Chr(34) & " : " & Chr(34) & serverUrl & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-hbase-audit" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs.dir" & Chr(34) & " : " & Chr(34) & hdfsDir & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-hbase-plugin-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "REPOSITORY_CONFIG_USERNAME" & Chr(34) & " : " & Chr(34) & "hbase" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-hbase-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "common.name.for.certificate" & Chr(34) & " : " & Chr(34) & "" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "policy_user" & Chr(34) & " : " & Chr(34) & "ambari-qa" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+            '====================================ranger-hive的配置参数=============================================
+
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-hive-security" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger.plugin.hive.policy.source.impl" & Chr(34) & " : " & Chr(34) & impl & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.plugin.hive.policy.rest.url" & Chr(34) & " : " & Chr(34) & serverUrl & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-hive-audit" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs.dir" & Chr(34) & " : " & Chr(34) & hdfsDir & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+            '====================================ranger-kafka的配置参数=============================================
+
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-kafka-security" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger.plugin.kafka.policy.source.impl" & Chr(34) & " : " & Chr(34) & impl & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.plugin.kafka.policy.rest.url" & Chr(34) & " : " & Chr(34) & serverUrl & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-kafka-audit" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs.dir" & Chr(34) & " : " & Chr(34) & hdfsDir & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-kafka-plugin-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "REPOSITORY_CONFIG_USERNAME" & Chr(34) & " : " & Chr(34) & "kafka" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-kafka-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "policy_user" & Chr(34) & " : " & Chr(34) & "ambari-qa" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+            '====================================ranger-atlas的配置参数=============================================
+
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-atlas-security" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger.plugin.atlas.policy.source.impl" & Chr(34) & " : " & Chr(34) & impl & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.plugin.atlas.policy.rest.url" & Chr(34) & " : " & Chr(34) & serverUrl & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-atlas-audit" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs.dir" & Chr(34) & " : " & Chr(34) & hdfsDir & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-atlas-plugin-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "REPOSITORY_CONFIG_USERNAME" & Chr(34) & " : " & Chr(34) & "admin" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-atlas-plugin-enabled" & Chr(34) & " : " & Chr(34) & "Yes" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "common.name.for.certificate" & Chr(34) & " : " & Chr(34) & "" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "policy_user" & Chr(34) & " : " & Chr(34) & "atlas" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+            '====================================ranger-nifi的配置参数=============================================
+            
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-nifi-security" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger.plugin.nifi.policy.source.impl" & Chr(34) & " : " & Chr(34) & impl & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.plugin.nifi.policy.rest.url" & Chr(34) & " : " & Chr(34) & serverUrl & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-nifi-audit" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs.dir" & Chr(34) & " : " & Chr(34) & hdfsDir & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-nifi-plugin-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger-nifi-plugin-enabled" & Chr(34) & " : " & Chr(34) & "No" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "policy_user" & Chr(34) & " : " & Chr(34) & "nifi" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+            '====================================ranger-knox的配置参数=============================================
+    
+    impl2 = "org.apache.ranger.admin.client.RangerAdminJersey2RESTClient"
+
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-knox-security" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "ranger.plugin.knox.policy.source.impl" & Chr(34) & " : " & Chr(34) & impl2 & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger.plugin.knox.policy.rest.url" & Chr(34) & " : " & Chr(34) & serverUrl & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-knox-audit" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "xasecure.audit.destination.hdfs.dir" & Chr(34) & " : " & Chr(34) & hdfsDir & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "ranger-knox-plugin-properties" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    Print #1, L5 & Chr(34) & "REPOSITORY_CONFIG_USERNAME" & Chr(34) & " : " & Chr(34) & "admin" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "ranger-knox-plugin-enabled" & Chr(34) & " : " & Chr(34) & "No" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "policy_user" & Chr(34) & " : " & Chr(34) & "ambari-qa" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "},"
+         
+    '====================================kerberos的配置参数=============================================
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "kerberos-env" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties_attributes" & Chr(34) & " : {},"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    '=====表格中留有相关填写项 虚拟ip  ldap 域=====
+    Print #1, L5 & Chr(34) & "realm" & Chr(34) & " : " & Chr(34) & Range("realm") & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "kdc_type" & Chr(34) & " : " & Chr(34) & "mit-kdc" & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "kdc_hosts" & Chr(34) & " : " & Chr(34) & Range("virtualIP") & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "admin_server_host" & Chr(34) & " : " & Chr(34) & Range("virtualIP") & Chr(34)
+    Print #1, L4 & "}"
+    Print #1, L3 & "}"
+    Print #1, L2 & "},"
+    Print #1, L3 & "{"
+    Print #1, L3 & Chr(34) & "krb5-conf" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "properties_attributes" & Chr(34) & " : {},"
+    Print #1, L4 & Chr(34) & "properties" & Chr(34) & " : {"
+    '=====表格中留有相关填写项ldap 域 realm
+    Print #1, L5 & Chr(34) & "domains" & Chr(34) & " : " & Chr(34) & Range("realm") & Chr(34) & ","
+    Print #1, L5 & Chr(34) & "manage_krb5_conf" & Chr(34) & " : " & Chr(34) & "true" & Chr(34)
+    Print #1, L5 & "}"
+    Print #1, L4 & "}"
+    Print #1, L3 & "}"
+    Print #1, L2 & "],"
+    '====================================hostgroups的组件安装详情=============================================
+    nodesNum = getClusterNodesNumber
+    componentRow = nodesInfoStartRow - 1 ' 组件部署表中的第6行
+
+    componentLastColumn = Range("lastCol").Column - 1
+    optionValue = getPlanSelected
+  
+    Dim serviceSelections
+    serviceSelections = getServicesSelected
+    '默认安装的服务
+    Dim defaultServices As String
+    defaultServices = "Pig Slider Tez Ambari_Infra Ambari_Metrics"
+  
+    serviceInstall = serviceSelections(1) & " " & defaultServices '拼接选择的服务与默认安装的服务
+    serviceInstallArr = Split(serviceInstall, " ")
+    serviceCount = UBound(serviceInstallArr) '安装的服务的计数
+
+    startRow = nodesInfoStartRow
+    lastRow = startRow + nodesNum - 1
+    Print #1, L2 & Chr(34) & "host_groups" & Chr(34) & " : ["
+    
+    Select Case optionValue
+      Case plan1Value      '"方案1：MN&CN、DN"
+        controlNodeStartRow = startRow
+      Case plan2Value      '"方案2：MN、CN、DN"  写入两个管理节点的安装组件(单独处理)
+      
+        Print #1, L2 & "{"
+        Print #1, L3 & Chr(34) & "name" & Chr(34) & " : " & Chr(34) & "manager" & Chr(34) & ","
+        Print #1, L3 & Chr(34) & "components" & Chr(34) & " : ["
+        For ser = 0 To serviceCount
+          With Sheets("组件部署")
+            Set serviceRange = .Range("deployServicesName").Find(serviceInstallArr(ser))
+            If Not serviceRange Is Nothing Then
+        
+              startColumn = serviceRange.Column
+              componentCount = serviceRange.MergeArea.Columns.Count
+              endColumn = startColumn + componentCount - 1
+              '每个服务的组件，遍历
+              For col = startColumn To endColumn
+                 ' 管理节点组件安装行  nodesInfoStartRow 两行安装的组件相同cardinality = 2
+                If .Cells(nodesInfoStartRow, col).value = "Y" Then
+                  componentCount = componentCount + 1
+                  If col <> 52 Then  '52列为最后一个组件所在列
+                    writeComponent (.Cells(componentRow, col).value)
+                    Print #1, ","
+                  Else
+                    writeComponent (.Cells(componentRow, col).value)  '最后一个服务的组件不带逗号“，”
+                    Print #1, Chr(10) & L3 & "],"
+                    Print #1, L3 & Chr(34) & "cardinality" & Chr(34) & ": " & 2
+                    Print #1, L2 & "},"
+                  End If
+                End If
+              Next
+            End If
+          End With
+        Next
+        controlNodeStartRow = startRow + 2
+      Case plan3Value      '"方案3：MN&CN&DN"
+        controlNodeStartRow = startRow
+    End Select
+    
+    '==遍历三个控制节点' 组件安装行  controlNodeStartRow起始行遍历3行
+    For i = controlNodeStartRow To controlNodeStartRow + 2
+      Print #1, L2 & "{"
+      hostGroupCount = i - controlNodeStartRow + 1 '控制节点计数,拼出主机群名
+      Print #1, L3 & Chr(34) & "name" & Chr(34) & " : " & Chr(34) & "master" & hostGroupCount & Chr(34) & ","
+      Print #1, L3 & Chr(34) & "components" & Chr(34) & " : ["
+      '==按安装的服务总数，遍历
+      For ser = 0 To serviceCount
+        With Sheets("组件部署")
+          Set serviceRange = .Range("deployServicesName").Find(serviceInstallArr(ser))
+          If Not serviceRange Is Nothing Then
+        
+            startColumn = serviceRange.Column
+            componentCount = serviceRange.MergeArea.Columns.Count
+            endColumn = startColumn + componentCount - 1
+            '每个服务的组件，遍历
+            For col = startColumn To endColumn
+              If .Cells(i, col).value = "Y" Then
+                componentCount = componentCount + 1
+                If col <> 52 Then  '52列为最后一个组件所在列
+                  writeComponent (.Cells(componentRow, col).value)
+                  Print #1, ","
+                Else
+                  writeComponent (.Cells(componentRow, col).value)  '最后一个服务的组件不带逗号“，”
+                  Print #1, Chr(10) & L3 & "],"
+                End If
+              End If
+            Next
+            
+          End If
+        End With
+      Next
+      Print #1, L3 & Chr(34) & "cardinality" & Chr(34) & ": 1"
+      dataNodesNum = lastRow - (controlNodeStartRow + 2)
+      If dataNodesNum = 0 And i = controlNodeStartRow + 2 Then
+        Print #1, L2 & "}"
+        Print #1, L2 & "],"
+      Else
+        Print #1, L2 & "},"
+      End If
+    Next
+    '数据节点都安装到slave主机群组中(所有的节点都安装相同的组件)
+    dataNodesNum = lastRow - (controlNodeStartRow + 2) '数据节点的数量
+    If dataNodesNum > 0 Then
+      Print #1, L2 & "{"
+      Print #1, L3 & Chr(34) & "name" & Chr(34) & " : " & Chr(34) & "slave" & Chr(34) & ","
+      Print #1, L3 & Chr(34) & "components" & Chr(34) & " : ["
+      For ser = 0 To serviceCount
+        With Sheets("组件部署")
+          Set serviceRange = .Range("deployServicesName").Find(serviceInstallArr(ser))
+          If Not serviceRange Is Nothing Then
+        
+            startColumn = serviceRange.Column
+            componentCount = serviceRange.MergeArea.Columns.Count
+            endColumn = startColumn + componentCount - 1
+            '每个服务的组件，遍历
+            For col = startColumn To endColumn
+              ' 数据节点组件安装行  controlNodeStartRow + 3
+              If .Cells(controlNodeStartRow + 3, col).value = "Y" Then
+                componentCount = componentCount + 1
+                If col <> 52 Then  '52列为最后一个组件所在列
+                  writeComponent (.Cells(componentRow, col).value)
+                  Print #1, ","
+                Else
+                  writeComponent (.Cells(componentRow, col).value)  '最后一个服务的组件不带逗号“，”
+                  Print #1, Chr(10) & L3 & "],"
+                  Print #1, L3 & Chr(34) & "cardinality" & Chr(34) & ": " & dataNodesNum
+                  Print #1, L2 & "}"
+                  Print #1, L2 & "],"
+                End If
+              End If
+            Next
+          End If
+        End With
+      Next
+      
+    End If
+    '====================================本地源配置预留repo=============================================
+    '=====
+    
+    '====================================stacks版本相关信息=============================================
+    Print #1, L2 & Chr(34) & "Blueprints" & Chr(34) & " : {"
+    '==========先写成固定值，后续考虑表中增加，blueprint_name stack_name version等信息
+    
+    Print #1, L3 & Chr(34) & "blueprint_name" & Chr(34) & " : " & Chr(34) & blueprintName & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "stack_name" & Chr(34) & " : " & Chr(34) & "HDP" & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "stack_version" & Chr(34) & " : " & Chr(34) & "2.6" & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "security" & Chr(34) & " : {"
+    Print #1, L4 & Chr(34) & "type" & Chr(34) & " : " & Chr(34) & "KERBEROS" & Chr(34)
+    Print #1, L3 & "}"
+    Print #1, L2 & "}"
+    Print #1, "}"
+    
+    Close #1
+    
+  End Sub
+'==========================================================================
+'                  写组件名
+'==========================================================================
+  Sub writeComponent(value As String)
+  
+    Print #1, L4 & "{"
+    Print #1, L5 & Chr(34) & "name" & Chr(34) & ":" & Chr(34) & value & Chr(34) '& Chr(10)
+    Print #1, L4 & "}"; '有分号 print不换行打印
+    
+  End Sub
+  
+  
+  
+  
+'==========================================================================
+'
+'               导出hostmap文件
+'
+'==========================================================================
+  Sub outputHostmap()
+    nodesNum = getClusterNodesNumber
+    nodesInfoLastRow = nodesInfoStartRow + nodesNum - 1
+    optionValue = getPlanSelected
+    
+    Dim controlNodeStartRow, hostGroupCount As Integer
+    hostmap = getConfFilePath & "\hostmap\"
+    mkdirp (hostmap)
+    Filename = hostmap & "hostmap.json"
+    Open Filename For Output As #1
+    Print #1, "{"
+    Print #1, L2 & Chr(34) & "blueprint" & Chr(34) & " : " & Chr(34) & blueprintName & Chr(34) & ","
+    ' 统一的默认密码
+    Print #1, L2 & Chr(34) & "default_password" & Chr(34) & ":" & Chr(34) & "123456a?" & Chr(34) & ","
+    Print #1, L2 & Chr(34) & "host_groups" & Chr(34) & " : ["
+    Select Case optionValue
+    
+      Case plan1Value         '"方案1：MN&CN、DN"
+      
+        controlNodeStartRow = nodesInfoStartRow
+        
+      Case plan2Value         '"方案2：MN、CN、DN"
+        '管理节点写在一个manager hostgroup
+        Print #1, L2 & "{"
+        Print #1, L3 & Chr(34) & "name" & Chr(34) & " : " & Chr(34) & "manager" & Chr(34) & ","
+        Print #1, L3 & Chr(34) & "hosts" & Chr(34) & " : ["
+        '方案2，遍历两个管理节点
+        For i = nodesInfoStartRow To nodesInfoStartRow + 1
+          Print #1, L4 & "{"
+          name1 = LCase(Range("clusterName"))
+          name2 = Replace(Sheets("节点信息").Cells(i, Range("ipAddr").Column).value, ".", "-")
+          name3 = Range("domainName")
+          fqdn = name1 & "-" & name2 & "." & name3
+          Print #1, L4 & Chr(34) & "fqdn" & Chr(34) & " : " & Chr(34) & fqdn & Chr(34)
+          If i <> nodesInfoStartRow + 1 Then
+            Print #1, L4 & "},"
+          Else
+            Print #1, L4 & "}"
+            Print #1, L3 & "]"
+            Print #1, L2 & "},"
+          End If
+        Next
+      
+        controlNodeStartRow = nodesInfoStartRow + 2
+        
+      Case plan3Value         '"方案3：MN&CN&DN"
+
+        controlNodeStartRow = nodesInfoStartRow
+        
+    End Select
+    '遍历三个控制节点
+    For i = controlNodeStartRow To controlNodeStartRow + 2
+      hostGroupCount = i - controlNodeStartRow + 1
+      Print #1, L2 & "{"
+      Print #1, L3 & Chr(34) & "name" & Chr(34) & " : " & Chr(34) & "master" & hostGroupCount & Chr(34) & ","
+      Print #1, L3 & Chr(34) & "hosts" & Chr(34) & " : ["
+      Print #1, L4 & "{"
+      ' fqdn 替换拼接处理
+      name1 = LCase(Range("clusterName"))
+      name2 = Replace(Sheets("节点信息").Cells(i, Range("ipAddr").Column).value, ".", "-")
+      name3 = Range("domainName")
+      fqdn = name1 & "-" & name2 & "." & name3
+      
+      Print #1, L4 & Chr(34) & "fqdn" & Chr(34) & " : " & Chr(34) & fqdn & Chr(34)
+      Print #1, L4 & "}"
+      Print #1, L3 & "]"
+      dataNodesNum = nodesInfoLastRow - (controlNodeStartRow + 2)
+      If dataNodesNum = 0 And i = controlNodeStartRow + 2 Then
+        Print #1, L2 & "}"
+      Else
+        Print #1, L2 & "},"
+      End If
+    Next
+    '遍历所有数据节点，写入一个主机群组hostgroup
+    dataNodesNum = nodesInfoLastRow - (controlNodeStartRow + 2) '数据节点的数量
+    If dataNodesNum > 0 Then
+    Print #1, L2 & "{"
+    Print #1, L3 & Chr(34) & "name" & Chr(34) & " : " & Chr(34) & "slave" & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "hosts" & Chr(34) & " : ["
+      For i = controlNodeStartRow + 3 To nodesInfoLastRow
+        Print #1, L4 & "{"
+        name1 = LCase(Range("clusterName"))
+        name2 = Replace(Sheets("节点信息").Cells(i, Range("ipAddr").Column).value, ".", "-")
+        name3 = Range("domainName")
+        fqdn = name1 & "-" & name2 & "." & name3
+        Print #1, L4 & Chr(34) & "fqdn" & Chr(34) & " : " & Chr(34) & fqdn & Chr(34)
+        If i <> nodesInfoLastRow Then
+          Print #1, L4 & "},"
+        Else
+          Print #1, L4 & "}"
+          Print #1, L3 & "]"
+          Print #1, L2 & "}"
+        End If
+      Next
+    End If
+    Print #1, L2 & "],"
+    Print #1, L2 & Chr(34) & "credentials" & Chr(34) & " : [ "
+    Print #1, L2 & "{"
+    Print #1, L3 & Chr(34) & "alias" & Chr(34) & ":" & Chr(34) & "kdc.admin.credential" & Chr(34) & ","
+    
+    Print #1, L3 & Chr(34) & "principal" & Chr(34) & ":" & Chr(34) & Range("kerberosAdminUser") & "/admin" & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "key" & Chr(34) & ":" & Chr(34) & Range("kerberosAdminPassword") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "type" & Chr(34) & ":" & Chr(34) & "TEMPORARY" & Chr(34)
+    Print #1, L2 & "}"
+    Print #1, L2 & "],"
+    Print #1, L2 & Chr(34) & "security" & Chr(34) & " : {"
+    Print #1, L3 & Chr(34) & "type" & Chr(34) & ":" & Chr(34) & "KERBEROS" & Chr(34)
+    Print #1, L2 & "},"
+    Print #1, L2 & Chr(34) & "Clusters" & Chr(34) & " : {"
+    '集群名写入hostmap
+    Print #1, L3 & Chr(34) & "cluster_name" & Chr(34) & ":" & Chr(34) & Range("clusterName") & Chr(34)
+    Print #1, L2 & "}"
+    Print #1, "}"
+    Close #1
+    
+  End Sub
+  
+'==========================================================================
+'
+'               生成命令reg_create.sh
+'
+'==========================================================================
+
+  Sub outputReg_create()
+   
+    reg_create = getConfFilePath
+    Filename = reg_create & "\reg_create.sh"
+    
+    ambariServerIP = Sheets("组件部署").Cells(nodesInfoStartRow, Range("componentNodesIP").Column)
+    ambariServer = LCase(Range("clusterName")) & "-" & Replace(ambariServerIP, ".", "-") & "." & Range("domainName")
+    
+    Open Filename For Output As #1
+    
+    Print #1, "#!/bin/bash"
+    Print #1, "curl -H " & Chr(34) & "X-Requested-By: ambari" & Chr(34) & " -X POST -d " & Chr(34) & _
+              "@blueprint/blueprint.json" & Chr(34) & " -u admin:admin http://" & ambariServer & ":8080/api/v1/blueprints/" & blueprintName
+              
+    Print #1, "curl -H " & Chr(34) & "X-Requested-By: ambari" & Chr(34) & " -X POST -d " & Chr(34) & _
+              "@hostmap/hostmap.json" & Chr(34) & " -u admin:admin http://" & ambariServer & ":8080/api/v1/clusters/" _
+              & Range("clusterName")
+    Close #1
+  End Sub
+  
+'==========================================================================
+'
+'               导出ansible文件
+'
+'==========================================================================
+  Sub outputAnsible()
+    nodesNum = getClusterNodesNumber
+    nodesInfoLastRow = nodesInfoStartRow + nodesNum - 1
+    optionValue = getPlanSelected
+    
+    Dim controlNodeStartRow, hostGroupCount As Integer
+    ansible = getConfFilePath & "\ansible\"
+    mkdirp (ansible)
+    Filename = ansible & "newcluster.json"
+    Open Filename For Output As #1
+    Print #1, "{"
+    Print #1, L2 & Chr(34) & "hostinfo" & Chr(34) & " : ["
+    
+    For i = nodesInfoStartRow To nodesInfoLastRow
+      Print #1, L3 & "{"
+      With Sheets("节点信息")
+        ip = .Cells(i, Range("ipAddr").Column).value
+        rootPassword = .Cells(i, Range("infoRootPassWord").Column).value
+      End With
+      Print #1, L4 & Chr(34) & "hostip" & Chr(34) & " : " & Chr(34) & ip & Chr(34) & ","
+      Print #1, L4 & Chr(34) & "password" & Chr(34) & " : " & Chr(34) & rootPassword & Chr(34) & ","
+      hostName = LCase(Range("clusterName")) & "-" & Replace(ip, ".", "-") & "." & Range("domainName")
+      Print #1, L4 & Chr(34) & "hostname" & Chr(34) & " : " & Chr(34) & hostName & Chr(34)
+      If i <> nodesInfoLastRow Then
+        Print #1, L3 & "},"
+      Else
+        Print #1, L3 & "}"
+        Print #1, L2 & "],"
+      End If
+    Next
+    Print #1, L2 & Chr(34) & "clusterinfo" & Chr(34) & " : {"
+    Select Case optionValue
+    
+    Case plan2Value   '"方案2：MN、CN、DN"单独处理
+      With Sheets("节点信息")
+        mnIp1 = .Cells(nodesInfoStartRow, Range("ipAddr").Column).value
+        mnIp2 = .Cells(nodesInfoStartRow + 1, Range("ipAddr").Column).value
+        cnIp1 = .Cells(nodesInfoStartRow + 2, Range("ipAddr").Column).value
+        cnIp2 = .Cells(nodesInfoStartRow + 3, Range("ipAddr").Column).value
+        cnIp3 = .Cells(nodesInfoStartRow + 4, Range("ipAddr").Column).value
+      End With
+    
+    Case Else           '方案1与方案3 情况相同
+      With Sheets("节点信息")
+        mnIp1 = .Cells(nodesInfoStartRow, Range("ipAddr").Column).value
+        mnIp2 = .Cells(nodesInfoStartRow + 1, Range("ipAddr").Column).value
+        cnIp1 = .Cells(nodesInfoStartRow, Range("ipAddr").Column).value
+        cnIp2 = .Cells(nodesInfoStartRow + 1, Range("ipAddr").Column).value
+        cnIp3 = .Cells(nodesInfoStartRow + 2, Range("ipAddr").Column).value
+      End With
+      
+    End Select
+    
+    Print #1, L3 & Chr(34) & "manager_hosts" & Chr(34) & " : ["
+    Print #1, L4 & Chr(34) & mnIp1 & Chr(34) & ","
+    Print #1, L4 & Chr(34) & mnIp2 & Chr(34)
+    Print #1, L3 & "],"
+    
+    Print #1, L3 & Chr(34) & "controler_hosts" & Chr(34) & " : ["
+    Print #1, L4 & Chr(34) & cnIp1 & Chr(34) & ","
+    Print #1, L4 & Chr(34) & cnIp2 & Chr(34) & ","
+    Print #1, L4 & Chr(34) & cnIp3 & Chr(34)
+    Print #1, L3 & "],"
+    Print #1, L3 & Chr(34) & "mysql_datadir" & Chr(34) & " : " & Chr(34) & "/srv/indata/metadata/mysql" & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "mysql_root_password" & Chr(34) & " : " & Chr(34) & _
+              Range("mysqlRootPassword") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "mysql_hive_password" & Chr(34) & " : " & Chr(34) & _
+              Range("mysqlHivePassword") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "mysql_keycloak_password" & Chr(34) & " : " & Chr(34) & _
+              Range("keycloakPassword") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "mysql_idap_password" & Chr(34) & " : " & Chr(34) & _
+              Range("mysqlIdapPassword") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "krb5kdc_realm" & Chr(34) & " : " & Chr(34) & _
+              Range("realm") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "krb5kdc_admin_principal" & Chr(34) & " : " & Chr(34) & _
+              Range("kerberosAdminUser") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "openldap_base" & Chr(34) & " : " & Chr(34) & _
+              Range("ldapBase") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "ldap_rootdn_password" & Chr(34) & " : " & Chr(34) & _
+              Range("ldapRootPassword") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "ambari_clustername" & Chr(34) & " : " & Chr(34) & _
+              Range("clusterName") & Chr(34) & ","
+    rangerHostIP = getRangerHostIP
+    kafkaHostIP = getKafkaHostIP
+    Print #1, L3 & Chr(34) & "ranger_hostip" & Chr(34) & " : " & Chr(34) & rangerHostIP & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "kafka_hostip" & Chr(34) & " : " & Chr(34) & kafkaHostIP & Chr(34) & ","
+    nifiHostIP = getNifiHostIP
+    knoxHostIP = getKnoxHostIP
+    Print #1, L3 & Chr(34) & "nifi_hostip" & Chr(34) & " : " & Chr(34) & nifiHostIP & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "ambari_knox_hostip" & Chr(34) & " : " & Chr(34) & knoxHostIP & Chr(34) & ","
+    '=======临时写成固定值
+    Print #1, L3 & Chr(34) & "nginx_nifi_port" & Chr(34) & " : " & Chr(34) & "82" & Chr(34) & ","
+    'knox 密码预设，暂时写成固定值   123456a?
+    Print #1, L3 & Chr(34) & "ambari_knox_keystore" & Chr(34) & " : " & Chr(34) & "123456a?" & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "interface" & Chr(34) & " : " & Chr(34) & _
+              Range("networkInterface") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "virtual_ipaddress" & Chr(34) & " : " & Chr(34) & _
+              Range("virtualIP") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "virtual_ipfqdn" & Chr(34) & " : " & Chr(34) & _
+              LCase(Range("clusterName")) & "-" & "virtual" & "." & Range("domainName") & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "buleprint_config_dir" & Chr(34) & " : " & Chr(34) & _
+              "/opt/indata_config" & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "blueprint_name" & Chr(34) & " : " & Chr(34) & blueprintName & Chr(34) & ","
+    Print #1, L3 & Chr(34) & "keycloak_dev_realm" & Chr(34) & " : " & Chr(34) & "tenant" & Chr(34)
+    Print #1, L2 & "}"
+    Print #1, "}"
+    Close #1
+  End Sub
+'==========================================================================
+'
+'               导出nodesInfo文件
+'
+'==========================================================================
+  Sub outputNodesInfo()
+    nodesNum = getClusterNodesNumber
+    nodesInfoLastRow = nodesInfoStartRow + nodesNum - 1
+    
+    pxe = getConfFilePath & "\pxe\"
+    mkdirp (pxe)
+    Filename = pxe & "nodesinfo.json"
+    Open Filename For Output As #1
+    Print #1, "["
+    
+    For i = nodesInfoStartRow To nodesInfoLastRow
+      With Sheets("节点信息")
+        macAddr = .Cells(i, Range("macAddr").Column).value
+        ip = .Cells(i, Range("ipAddr").Column).value
+        netmask = .Cells(i, Range("netmask").Column).value
+        gateway = .Cells(i, Range("gateway").Column).value
+        dns = .Cells(i, Range("dns").Column).value
+        rootPassword = .Cells(i, Range("infoRootPassWord").Column).value
+        
+      End With
+      
+      Print #1, L2 & "{"
+      Print #1, L3 & Chr(34) & "mac" & Chr(34) & " : " & Chr(34) & macAddr & Chr(34) & ","
+      Print #1, L3 & Chr(34) & "ip" & Chr(34) & " : " & Chr(34) & ip & Chr(34) & ","
+      Print #1, L3 & Chr(34) & "netmask" & Chr(34) & " : " & Chr(34) & netmask & Chr(34) & ","
+      Print #1, L3 & Chr(34) & "gateway" & Chr(34) & " : " & Chr(34) & gateway & Chr(34) & ","
+      Print #1, L3 & Chr(34) & "dns" & Chr(34) & " : " & Chr(34) & dns & Chr(34) & ","
+      Print #1, L3 & Chr(34) & "passwd" & Chr(34) & " : " & Chr(34) & rootPassword & Chr(34)
+
+      If i <> nodesInfoLastRow Then
+        Print #1, L2 & "},"
+      Else
+        Print #1, L2 & "}"
+        Print #1, "]"
+      End If
+    Next
+
+    Close #1
+    
+    '=======================init.sh复制站点到指定目录========
+    '不存在，则生成，否则不生成
+    If Dir(pxe & "\init.sh") = "" Then
+
+      Sheets("constantValue").OLEObjects("Object 2").Copy
+                                     '====pxe目录下=====
+      Set sh = CreateObject("Shell.Application")
+      sh.Namespace(pxe).self.InvokeVerb "Paste"
+
+    End If
+    
+  End Sub
+'==========================================================================
+'
+'               导出diskpartition文件
+'
+'==========================================================================
+  Sub outputDiskPartition()
+    nodesNum = getClusterNodesNumber
+    nodesInfoLastRow = nodesInfoStartRow + nodesNum - 1
+
+    pxe = getConfFilePath & "\pxe\"
+    mkdirp (pxe)
+    Filename = pxe & "diskpartition.json"
+    Open Filename For Output As #1
+    
+    Print #1, "["
+    
+    For i = nodesInfoStartRow To nodesInfoLastRow
+      
+      With Sheets("组件部署")
+        ip = .Cells(i, Range("componentNodesIP").Column).value
+        
+        If .Cells(i, .Range("zooKeeperServer").Column).value = "Y" And .Range("zooKeeperServer").MergeArea.Columns.EntireColumn.Hidden = False Then
+          zookeeper = 1
+        Else
+          zookeeper = 0
+        End If
+               
+        If .Cells(i, .Range("nameNode").Column).value = "Y" And .Range("nameNode").MergeArea.Columns.EntireColumn.Hidden = False Then
+          namenode = 1
+        Else
+          namenode = 0
+        End If
+    
+        If .Cells(i, .Range("journalNode").Column).value = "Y" And .Range("nameNode").MergeArea.Columns.EntireColumn.Hidden = False Then
+          journalnode = 1
+        Else
+          journalnode = 0
+        End If
+      
+        If .Cells(i, .Range("KuduMaster").Column).value = "Y" And .Range("KuduMaster").MergeArea.Columns.EntireColumn.Hidden = False Then
+          kudumaster = 1
+        Else
+          kudumaster = 0
+        End If
+        If .Cells(i, .Range("dataNode").Column).value = "Y" And .Range("dataNode").MergeArea.Columns.EntireColumn.Hidden = False Then
+          datanode = 1
+        Else
+          datanode = 0
+        End If
+      
+        If .Cells(i, .Range("KafkaBroker").Column).value = "Y" And .Range("KafkaBroker").MergeArea.Columns.EntireColumn.Hidden = False Then
+          kafka = 1
+        Else
+          kafka = 0
+        End If
+      
+        If .Cells(i, .Range("EsServer").Column).value = "Y" And .Range("EsServer").MergeArea.Columns.EntireColumn.Hidden = False Then
+          elasticsearch = 1
+        Else
+          elasticsearch = 0
+        End If
+      
+        If .Cells(i, .Range("NiFiMaster").Column).value = "Y" And .Range("NiFiMaster").MergeArea.Columns.EntireColumn.Hidden = False Then
+          nifi = 1
+        Else
+          nifi = 0
+        End If
+      
+        If .Cells(i, .Range("KuduTServer").Column).value = "Y" And .Range("KuduTServer").MergeArea.Columns.EntireColumn.Hidden = False Then
+          kudu = 1
+        Else
+          kudu = 0
+        End If
+
+      End With
+
+      Print #1, L2 & "{"
+      Print #1, L3 & Chr(34) & "ip" & Chr(34) & " : " & Chr(34) & ip & Chr(34) & ","
+      Print #1, L3 & Chr(34) & "zookeeper" & Chr(34) & " : " & zookeeper & ","
+      Print #1, L3 & Chr(34) & "namenode" & Chr(34) & " : " & namenode & ","
+      Print #1, L3 & Chr(34) & "journalnode" & Chr(34) & " : " & journalnode & ","
+      Print #1, L3 & Chr(34) & "kudu_master" & Chr(34) & " : " & kudumaster & ","
+      Print #1, L3 & Chr(34) & "mysql" & Chr(34) & " : " & mysql & ","
+      Print #1, L3 & Chr(34) & "datanode" & Chr(34) & " : " & datanode & ","
+      Print #1, L3 & Chr(34) & "kafka" & Chr(34) & " : " & kafka & ","
+      Print #1, L3 & Chr(34) & "elasticsearch" & Chr(34) & " : " & elasticsearch & ","
+      Print #1, L3 & Chr(34) & "nifi" & Chr(34) & " : " & nifi & ","
+      Print #1, L3 & Chr(34) & "kudu_tserver" & Chr(34) & " : " & kudu
+      If i <> nodesInfoLastRow Then
+        Print #1, L2 & "},"
+      Else
+        Print #1, L2 & "}"
+        Print #1, "]"
+      End If
+    Next
+    
+    Close #1
+  End Sub
+
+Sub test()
+
+    
+    
+    Dim wApp As Object
+    'Sheets("constantValue").OLEObjects("对象 2").Activate
+    Sheets("constantValue").OLEObjects("对象 2").Copy
+    Set wApp = CreateObject("Shell.Application")
+    Set folder = wApp.Namespace("D:\configFiles\pxe\")
+    folder.self.InvokeVerb "Paste"
+    '运行代码将数据写入WORD
+    'wApp.SaveAs pxe & "\test.doc"
+    'wApp.Quit
+    'wApp.Namespace(pxe).self.InvokeVerb "粘贴(&p)"
+    
+    Dim obj As Object
+    If Dir(pxe & "\init.sh") = "" Then
+    
+
+                                     '====pxe目录下=====
+    CreateObject("Shell.Application").Namespace(pxe).self.InvokeVerb "Paste"
+      'Set sh = CreateObject("Shell.Application")
+      'sh.Namespace(pxe).self.InvokeVerb "Paste"
+      'Set folder = sh.Namespace(pxe)
+      'folder.self.InvokeVerb "粘贴(&p)"
+      
+    End If
+    
+
+    cluesterName = LCase(Range("clusterName"))
+    pxe = getConfFilePath & "\pxe\"
+    mkdirp (pxe)
+    
+    Set MyFile = CreateObject("Scripting.FileSystemObject")
+    
+    If MyFile.FileExists(pxe & "\init.sh") Then
+      MsgBox ("haha")
+    End If
+    If Dir(pxe & "\init.sh") = "" Then
+    
+      Sheets("constantValue").OLEObjects("Object 1").Copy
+                                     '====pxe目录下=====
+      CreateObject("Shell.Application").Namespace(pxe).self.InvokeVerb "Paste"
+      
+    End If
+    nodesNum = getClusterNodesNumber
+    nodesInfoLastRow = nodesInfoStartRow + nodesNum - 1
+
+   maxdnDiskNum = Application.Max(Range(Cells(nodesInfoStartRow, Range("dnDiskCount").Column), _
+                  Cells(nodesInfoLastRow, Range("dnDiskCount").Column)))
+   For i = 1 To maxdnDiskNum
+     If i <> maxdnDiskNum Then
+     
+       dn = "/srv/bigData/data/datanode_" & i & ","
+    Else
+       dn = "/srv/bigData/data/datanode_" & i
+    End If
+     dnDir = dnDir & dn
+   Next
+     
+   With Sheets("节点信息")
+     var1 = .Cells(7, .Range("ipAddr").Column).value
+     
+   End With
+   name1 = Sheets("基础配置").Range("clusterName")
+   name2 = Replace(var1, ".", "_")
+   fqdn = name1 & "-" & name2 & "." & Sheets("基础配置").Range("domainName")
+   
+End Sub
+
